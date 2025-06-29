@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      * {
+        margin: 0;
+      }
+      .main-container {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+      }
+      #editor {
+        width: 95%;
+        height: 95%;
+      }
+      #graph {
+        width: 95%;
+        min-height: 95%;
+        /* border: 2px solid red; */
+        position: relative;
+      }
+      .node circle {
+        fill: #fff;
+        stroke: steelblue;
+        stroke-width: 3px;
+      }
+      .node text {
+        font: 12px sans-serif;
+      }
+      .node--internal text {
+        text-shadow: 0 1px 0 #fff, 0 -1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff;
+      }
+      .link {
+        fill: none;
+        stroke: #ccc;
+        stroke-width: 2px;
+      }
+      .n {
+        position: absolute;
+        width: 4rem;
+        height: 4rem;
+        border: 2px solid green;
+        background-color: #e22c2c70;
+      }
+    </style>
+
+    <div class="main-container">
+      <!-- <div id="editor"></div> -->
+
+      <div id="graph">
+        <div class="nodes-container"></div>
+      </div>
+    </div>
+    <script type="module" src="./app.js"></script>
+
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+  </body>
+</html>
