@@ -1,53 +1,35 @@
-// import * as d3 from "https://d3js.org/d3.v4.min.js";
-
-const treeData = {
-  name: "Top Level",
-  children: [
-    {
-      name: "Level 2: A",
-      children: [{ name: "Son of A" }, { name: "Daughter of A" }],
-    },
-    {
-      name: "Level 2: B",
-      children: [
-        { name: "Son of A" },
-        {
-          name: "Daughter of A",
-          children: [{ name: "Son of A" }, { name: "Daughter of A" }],
-        },
-      ],
-    },
-  ],
-};
-
-const getContainerSize = () => {
-  const container = document.getElementById("graph");
-  return container.getBoundingClientRect();
-};
-const margin = { top: 20, right: 30, bottom: 30, left: 30 };
-const dx = 100;
+import { treeData } from "./utils/data.js";
+import {
+  dx,
+  getContainerSize,
+  getGraphSize,
+  margin,
+  updateVisibleNodes,
+} from "./utils/graphUtils.js";
 
 const { width: contWidth, height: contHeight } = getContainerSize();
 
-const getGraphSize = () => {
-  const width = contWidth;
-  -margin.left - margin.right;
-  const height = contHeight;
-  -margin.top - margin.bottom;
-  return { width, height };
-};
-const updateVisibleNodes = (node) => {
-  const left = node.x;
-  const top = node.y;
-  const style = `"bottom: ${top}px; right: ${left}px; "`;
-  const n = document.createElement("div");
-  n.setAttribute("class", "n");
-  n.setAttribute("style", style);
-  console.log({ n });
-  document.querySelector(".nodes-container").appendChild(n);
+const updateSVGSizeOnZoom = (transform) => {
+  const svg = document.querySelector("svg");
+  const { x, y, k } = transform;
+  const { width, height } = getComputedStyle(svg);
+  const newWidth = parseInt(width) / k;
+  const newHeight = parseInt(height) / k;
+
+  svg.style.width = newWidth.toFixed() + "px";
+  svg.style.height = newHeight.toFixed() + "px";
+
+  console.log({
+    k,
+    wioth: parseInt(width),
+    newWidth,
+    oldWidth: svg.width.baseVal.value,
+    newHeight,
+    oldHeight: svg.height.baseVal.value,
+  });
 };
 
-const createSVGForGraph = () => {
+const createSVGForGraph = (treeData) => {
   const diagonal = d3
     .linkVertical()
     .x((d) => d.x)
@@ -55,7 +37,7 @@ const createSVGForGraph = () => {
 
   const root = d3.hierarchy(treeData);
 
-  const { width, height } = getGraphSize();
+  const { width, height } = getGraphSize(contWidth, contHeight);
   const dy = (width - margin.right - margin.left) / (1 + root.height);
 
   const treemap = d3.tree().nodeSize([dy, dx]);
@@ -63,20 +45,31 @@ const createSVGForGraph = () => {
   const svg = d3
     .create("svg")
     .attr("width", contWidth)
-    .attr("height", contHeight)
-    .attr("viewBox", [-margin.left, -margin.top, width, dx])
-    .attr(
-      "style",
-      "max-width: 100%; height: auto; font: 10px sans-serif; user-select: none; border: 2px solid red"
-    );
+    .attr("height", contHeight);
+
+  // .attr("width", "auto")
+  // .attr("height", "auto")
+  // .attr("viewBox", [-margin.left, -margin.top, width, dx])
+  // .attr(
+  //   "style",
+  //   "max-width: 100%; height: 100%; font: 10px sans-serif; user-select: none"
+  // )
+  /*   .call(
+      d3.zoom().on("zoom", function () {
+        // console.log(d3.event.transform);
+        updateSVGSizeOnZoom(d3.event.transform);
+        svg.attr("transform", { ...d3.event.transform, k: 0 });
+      })
+    ); */
 
   const gNode = svg
     .append("g")
     .attr("cursor", "pointer")
     .attr("pointer-events", "all")
+    // .attr("fill", "#f003")
     .attr(
       "style",
-      "max-width: 100%; height: auto; font: 10px sans-serif; user-select: none; border: 2px solid red"
+      "width: 100%; height: 100%; font: 10px sans-serif; user-select: none;background-color:#f003"
     );
 
   const gLink = svg
@@ -119,7 +112,10 @@ const createSVGForGraph = () => {
       .tween(
         "resize",
         window.ResizeObserver ? null : () => () => svg.dispatch("toggle")
-      );
+      )
+      .on("end", () => {
+        //! updateVisibleNodes();
+      });
 
     // Update the nodes…
     const node = gNode.selectAll("g").data(nodes, (d) => d.id);
@@ -134,23 +130,25 @@ const createSVGForGraph = () => {
       .attr("class", "node")
       .on("click", (d) => {
         d.children = d.children ? null : d._children;
-        const asd = update(d, d);
-        updateVisibleNodes(d);
-        console.log({ d });
-        // console.log("onclick-> ", asd);
-      });
+        update(d, d);
+        // updateVisibleNodes();
+      })
+      .on("mouseover", (param) => console.log("mouse over", param))
+      .on("mouseout", (param) => console.log("mouse out", param));
 
     nodeEnter
-      .append("circle")
-      .attr("r", 2.5)
+      .append("rect")
+      .attr("width", 20)
+      .attr("height", 20)
       .attr("fill", (d) => (d._children ? "#555" : "#999"))
       .attr("stroke-width", 10);
 
     nodeEnter
       .append("text")
-      .attr("dy", "0.31em")
-      .attr("x", (d) => (d._children ? -6 : 6))
-      .attr("text-anchor", (d) => (d._children ? "end" : "start"))
+      //   .attr("dy", "2em")
+      //   .attr("x", (d) => (d._children ? -6 : 6))
+      //   .attr("text-anchor", (d) => (d._children ? "end" : "start"))
+      .attr("text-anchor", "middle")
       .text((d) => d.data.name)
       .attr("stroke-linejoin", "round")
       .attr("stroke-width", 3)
@@ -203,6 +201,7 @@ const createSVGForGraph = () => {
       d.x0 = d.x;
       d.y0 = d.y;
     });
+
     return gNode.selectAll("g");
   };
 
@@ -213,12 +212,11 @@ const createSVGForGraph = () => {
     d._children = d.children;
     if (d.depth && d.data.name.length !== 7) d.children = null;
   });
-  const asd = update(null, root);
-  console.log(asd);
+  update(null, root);
   return svg.node();
 };
 
-const svgGraph = createSVGForGraph();
+const svgGraph = createSVGForGraph(treeData.rootNode);
 
-document.getElementById("graph").appendChild(svgGraph);
-// document.querySelectorAll(".node").forEach((n) => console.log(n.__data__));
+document.querySelector(".svg-container").appendChild(svgGraph);
+// updateVisibleNodes();
