@@ -1,33 +1,16 @@
-import { treeData } from "./utils/data.js";
+import { treeData, treeData2 } from "./utils/data.js";
 import {
+  createGrid,
   dx,
   getContainerSize,
   getGraphSize,
+  handleClickNodeExpand,
+  hideAllCodeBlocks,
+  hideCodeBlock,
+  initializeZoomBehavior,
   margin,
-  updateVisibleNodes,
 } from "./utils/graphUtils.js";
-
 const { width: contWidth, height: contHeight } = getContainerSize();
-
-const updateSVGSizeOnZoom = (transform) => {
-  const svg = document.querySelector("svg");
-  const { x, y, k } = transform;
-  const { width, height } = getComputedStyle(svg);
-  const newWidth = parseInt(width) / k;
-  const newHeight = parseInt(height) / k;
-
-  svg.style.width = newWidth.toFixed() + "px";
-  svg.style.height = newHeight.toFixed() + "px";
-
-  console.log({
-    k,
-    wioth: parseInt(width),
-    newWidth,
-    oldWidth: svg.width.baseVal.value,
-    newHeight,
-    oldHeight: svg.height.baseVal.value,
-  });
-};
 
 const createSVGForGraph = (treeData) => {
   const diagonal = d3
@@ -38,7 +21,7 @@ const createSVGForGraph = (treeData) => {
   const root = d3.hierarchy(treeData);
 
   const { width, height } = getGraphSize(contWidth, contHeight);
-  const dy = (width - margin.right - margin.left) / (1 + root.height);
+  const dy = (width - margin.right - margin.left) / (1 + root.height) + 50;
 
   const treemap = d3.tree().nodeSize([dy, dx]);
 
@@ -47,32 +30,25 @@ const createSVGForGraph = (treeData) => {
     .attr("width", contWidth)
     .attr("height", contHeight);
 
-  // .attr("width", "auto")
-  // .attr("height", "auto")
-  // .attr("viewBox", [-margin.left, -margin.top, width, dx])
-  // .attr(
-  //   "style",
-  //   "max-width: 100%; height: 100%; font: 10px sans-serif; user-select: none"
-  // )
-  /*   .call(
-      d3.zoom().on("zoom", function () {
-        // console.log(d3.event.transform);
-        updateSVGSizeOnZoom(d3.event.transform);
-        svg.attr("transform", { ...d3.event.transform, k: 0 });
-      })
-    ); */
+  // Create a zoom container group
+  const zoomContainer = svg.append("g").attr("class", "zoom-container");
 
-  const gNode = svg
+  // Initialize grid
+  createGrid(zoomContainer);
+
+  // Initialize zoom behavior
+  initializeZoomBehavior(svg);
+
+  const gNode = zoomContainer
     .append("g")
     .attr("cursor", "pointer")
     .attr("pointer-events", "all")
-    // .attr("fill", "#f003")
     .attr(
       "style",
-      "width: 100%; height: 100%; font: 10px sans-serif; user-select: none;background-color:#f003"
+      "width: 100%; height: 100%; font: 10px sans-serif; user-select: none;"
     );
 
-  const gLink = svg
+  const gLink = zoomContainer
     .append("g")
     .attr("fill", "none")
     .attr("stroke", "#555")
@@ -80,7 +56,7 @@ const createSVGForGraph = (treeData) => {
     .attr("stroke-width", 1.5);
 
   const update = (event, source) => {
-    const duration = event?.altKey ? 2500 : 250; // hold the alt key to slow down the transition
+    const duration = event?.altKey ? 500 : 250; // hold the alt key to slow down the transition
     const nodes = root.descendants().reverse();
     const links = root.links();
     // Compute the new tree layout.
@@ -99,6 +75,7 @@ const createSVGForGraph = (treeData) => {
 
     const height = bottom.y - top.y + margin.top + margin.bottom;
 
+    // Modified transition to work with zoom container
     const transition = svg
       .transition()
       .duration(duration)
@@ -112,10 +89,7 @@ const createSVGForGraph = (treeData) => {
       .tween(
         "resize",
         window.ResizeObserver ? null : () => () => svg.dispatch("toggle")
-      )
-      .on("end", () => {
-        //! updateVisibleNodes();
-      });
+      );
 
     // Update the nodes…
     const node = gNode.selectAll("g").data(nodes, (d) => d.id);
@@ -127,33 +101,45 @@ const createSVGForGraph = (treeData) => {
       .attr("transform", (d) => `translate(${source.y0},${source.x0})`)
       .attr("fill-opacity", 0)
       .attr("stroke-opacity", 0)
-      .attr("class", "node")
+      .attr("class", "node");
+    // .on("click", (d) => {
+    //   const event = d3.event;
+    //     d.children = d.children ? null : d._children;
+    //   update(event, d);
+    // });
+
+    // nodeEnter
+    //   .append("rect")
+    //   .attr("class", "shape")
+    //   .attr("fill", (d) => (d._children ? "#555" : "#999"))
+    //   .attr("transform", (d) => `translate(-15,0)`);
+
+    const foreignObject = nodeEnter
+      .append("foreignObject")
+      .attr("x", -50)
+      .attr("y", 0)
+      .attr("width", 100)
+      .attr("height", 40)
+      .attr("id", (d) => d.data.id)
       .on("click", (d) => {
-        d.children = d.children ? null : d._children;
-        update(d, d);
-        // updateVisibleNodes();
-      })
-      .on("mouseover", (param) => console.log("mouse over", param))
-      .on("mouseout", (param) => console.log("mouse out", param));
+        const event = d3.event;
+        event.stopPropagation();
+        if (event.ctrlKey) {
+          handleClickNodeExpand(d);
+        } else {
+          d.children = d.children ? null : d._children;
+          const selectedNode = d3.select(`#${d.data.id}`);
+          hideAllCodeBlocks();
+          // hideCodeBlock(selectedNode);
+          update(event, d);
+        }
+      });
 
-    nodeEnter
-      .append("rect")
-      .attr("width", 20)
-      .attr("height", 20)
-      .attr("fill", (d) => (d._children ? "#555" : "#999"))
-      .attr("stroke-width", 10);
+    const nodeDiv = foreignObject
+      .append("xhtml:div")
+      .attr("class", "node-shape");
 
-    nodeEnter
-      .append("text")
-      //   .attr("dy", "2em")
-      //   .attr("x", (d) => (d._children ? -6 : 6))
-      //   .attr("text-anchor", (d) => (d._children ? "end" : "start"))
-      .attr("text-anchor", "middle")
-      .text((d) => d.data.name)
-      .attr("stroke-linejoin", "round")
-      .attr("stroke-width", 3)
-      .attr("stroke", "white")
-      .attr("paint-order", "stroke");
+    nodeDiv.append("h3").text((d) => d.data.type.replace("_", " "));
 
     // Transition nodes to their new position.
     const nodeUpdate = node
@@ -210,13 +196,13 @@ const createSVGForGraph = (treeData) => {
   root.descendants().forEach((d, i) => {
     d.id = i;
     d._children = d.children;
-    if (d.depth && d.data.name.length !== 7) d.children = null;
+    if (d.depth && d.data.type.length !== 7) d.children = null;
   });
   update(null, root);
   return svg.node();
 };
 
 const svgGraph = createSVGForGraph(treeData.rootNode);
+const svgGraph2 = createSVGForGraph(treeData2.tree);
 
-document.querySelector(".svg-container").appendChild(svgGraph);
-// updateVisibleNodes();
+document.querySelector(".svg-container").appendChild(svgGraph2);

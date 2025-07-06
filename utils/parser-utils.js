@@ -21,59 +21,16 @@ void mergeSort(int arr[], int left, int right) {
         merge(arr, left, mid, right);
     }
 }
-
 `;
 
-const walkthrough = (node) => {
-  const res = {
-    start: node.startPosition,
-    end: node.endPosition,
-    children: [],
-  };
-  console.log(node);
-  if (node.namedChildCount > 0) {
-    for (let i = 0; i < node.namedChildCount; i++) {
-      //   console.log(JSON.stringify(node.namedChild(i)));
-      const child = walkthrough(node.namedChild(i));
-      res.children.push(walkthrough(child));
-    }
-  }
-};
-
-const printNode = (node) => {
-  const text = node.text;
-  const type = node.type;
-  if (type == "compound_statement" || true) {
-    console.log("-------------------------------------------------");
-    console.log(type);
-    console.log(text);
-    console.log("-------------------------------------------------");
-  }
-  return text;
-};
-
-const walkNodes = (node) => {
-  if (node.namedChildCount > 0) {
-    for (let i = 0; i < node.namedChildCount; i++) {
-      const child = node.namedChild(i);
-      walkNodes(child);
-      printNode(child);
-    }
-  }
-};
-
-// const tree = parser.parse(code);
-
-// walkNodes(tree.rootNode);
-
-// const sourceCode = "const x = 42;";
 const tree = parser.parse(sourceCode);
 const rootNode = tree.rootNode;
 
 let idCounter = 0;
 const allNodes = {};
+const allTypes = [];
 
-function nodeToJSON(node) {
+const nodeToJSON = (node) => {
   const id = `node_${idCounter++}`;
 
   // Store shallow copy in allNodes (without children)
@@ -101,9 +58,9 @@ function nodeToJSON(node) {
   }
 
   return jsonNode;
-}
+};
 
-const rootJson = nodeToJSON(rootNode);
+/* const rootJson = nodeToJSON(rootNode);
 
 const resultJson = {
   rootNode: rootJson,
@@ -118,13 +75,62 @@ fs.writeFile("output.json", JSON.stringify(resultJson), "utf8", (err) => {
   console.log("File written successfully!");
 });
 
-// const serialized = walkthrough(result.rootNode.namedChild(0));
-/* 
-fs.writeFile("output.json", JSON.stringify(serialized), "utf8", (err) => {
+ */
+
+const parseToJSON = (sourceCode) => {
+  const tree = parser.parse(sourceCode);
+  const result = {
+    metadata: {
+      language: "c",
+      nodeCount: 0,
+      timestamp: new Date().toISOString(),
+    },
+    types: [],
+    tree: null,
+    flatNodes: {},
+  };
+
+  let nodeId = 0;
+  const processNode = (node) => {
+    const id = `node_${nodeId++}`; // nodeId++;
+    result.metadata.nodeCount++;
+
+    if (!result.types.includes(node.type)) {
+      result.types.push(node.type);
+    }
+
+    const nodeData = {
+      id,
+      type: node.type,
+      isNamed: node.isNamed,
+      startPosition: node.startPosition,
+      endPosition: node.endPosition,
+      text: node.text,
+      children: [],
+    };
+
+    // Store in flat structure
+    result.flatNodes[id] = { ...nodeData };
+    delete result.flatNodes[id].children; // Remove children from flat version
+
+    // Process children for tree structure
+    for (const child of node.namedChildren) {
+      nodeData.children.push(processNode(child));
+    }
+
+    return nodeData;
+  };
+
+  result.tree = processNode(tree.rootNode);
+  return result;
+};
+
+// Usage
+const result = parseToJSON(sourceCode);
+fs.writeFile("output.json", JSON.stringify(result, null, 2), "utf8", (err) => {
   if (err) {
     console.error("Error writing file:", err);
     return;
   }
   console.log("File written successfully!");
 });
- */

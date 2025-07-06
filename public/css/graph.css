@@ -1,0 +1,53 @@
+.svg-container:active {
+  cursor: grab;
+}
+
+.svg-container {
+  /* overflow: hidden; */
+  width: 100%;
+  height: 100%;
+}
+
+.node {
+  stroke: aqua;
+  stroke-width: 2;
+}
+
+.node .text-content {
+  font: 18px sans-serif;
+  text-anchor: middle;
+  stroke-linejoin: round;
+  stroke-width: 1;
+  stroke: #94b4c1;
+  paint-order: stroke;
+  height: 100%;
+  width: 100%;
+}
+
+.node .shape {
+  width: 50px;
+  height: 35px;
+  border-radius: 10px;
+}
+
+.node .node-shape {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  font-size: 12px;
+  /* border: 1px solid red; */
+  background-color: #547792;
+  color: rgb(0, 0, 0);
+  padding: 4px;
+  box-sizing: border-box;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.node-shape h3 {
+  text-align: center;
+  text-transform: capitalize;
+}

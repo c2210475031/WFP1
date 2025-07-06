@@ -1,0 +1,158 @@
+const codeInput = document.getElementById("codeInput");
+const codeDisplay = document.getElementById("codeDisplay");
+const lineNumbers = document.getElementById("lineNumbers");
+const statusInfo = document.getElementById("statusInfo");
+
+// Control buttons
+const newFileBtn = document.getElementById("newFileBtn");
+const uploadFileBtn = document.getElementById("uploadFileBtn");
+const saveFileBtn = document.getElementById("saveFileBtn");
+const formatCodeBtn = document.getElementById("formatCodeBtn");
+// File Upload Input
+const fileInput = document.getElementById("fileInput");
+
+let currentFileName = "untitled.c";
+
+// Initialize with default code
+codeInput.value = `// Write your C code here...
+#include <stdio.h>
+
+void mergeSort(int arr[], int left, int right) {
+  if (left < right) {
+      // Calculate the midpoint
+      int mid = left + (right - left) / 2;
+      // Sort first and second halves
+      mergeSort(arr, left, mid);
+      mergeSort(arr, mid + 1, right);
+      // Merge the sorted halves
+      merge(arr, left, mid, right);
+  }
+}`;
+
+function updateDisplay() {
+  const code = codeInput.value;
+  const highlighted = hljs.highlight(code, { language: "c" }).value;
+  codeDisplay.innerHTML = `<pre><code>${highlighted}</code></pre>`;
+  updateLineNumbers();
+  updateStatus();
+}
+
+function updateLineNumbers() {
+  const lines = codeInput.value.split("\n");
+  const lineNumbersHtml = lines.map((_, index) => index + 1).join("\n");
+  lineNumbers.textContent = lineNumbersHtml;
+}
+
+function updateStatus() {
+  const cursorPos = codeInput.selectionStart;
+  const textBeforeCursor = codeInput.value.substring(0, cursorPos);
+  const lines = textBeforeCursor.split("\n");
+  const currentLine = lines.length;
+  const currentColumn = lines[lines.length - 1].length + 1;
+  statusInfo.textContent = `Line ${currentLine}, Column ${currentColumn}`;
+}
+
+function syncScroll() {
+  codeDisplay.scrollTop = codeInput.scrollTop;
+  codeDisplay.scrollLeft = codeInput.scrollLeft;
+  lineNumbers.scrollTop = codeInput.scrollTop;
+  lineNumbers.scrollLeft = codeInput.scrollLeft;
+}
+
+// Event listeners
+codeInput.addEventListener("input", updateDisplay);
+codeInput.addEventListener("scroll", syncScroll);
+codeInput.addEventListener("keyup", updateStatus);
+codeInput.addEventListener("click", updateStatus);
+
+// Handle tab key
+codeInput.addEventListener("keydown", function (e) {
+  if (e.key === "Tab") {
+    e.preventDefault();
+    const start = this.selectionStart;
+    const end = this.selectionEnd;
+    this.value =
+      this.value.substring(0, start) + "    " + this.value.substring(end);
+    this.selectionStart = this.selectionEnd = start + 4;
+    updateDisplay();
+  }
+});
+
+// File operations
+const newFile = () => {
+  if (
+    codeInput.value.trim() &&
+    confirm(
+      "Are you sure you want to create a new file? Unsaved changes will be lost."
+    )
+  ) {
+    codeInput.value = "";
+    currentFileName = "untitled.c";
+    updateDisplay();
+  } else if (!codeInput.value.trim()) {
+    codeInput.value = "";
+    currentFileName = "untitled.c";
+    updateDisplay();
+  }
+};
+
+const uploadFile = () => {
+  fileInput.click();
+};
+
+const loadFile = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      codeInput.value = e.target.result;
+      currentFileName = file.name;
+      updateDisplay();
+    };
+    reader.readAsText(file);
+  }
+};
+
+const saveFile = () => {
+  const blob = new Blob([codeInput.value], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = currentFileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+// Basic C code formatting
+const formatCode = () => {
+  let code = codeInput.value;
+
+  // Remove extra whitespace
+  code = code.replace(/\s+$/gm, "");
+
+  // Add proper spacing around operators
+  code = code.replace(/([^=!<>])=([^=])/g, "$1 = $2");
+  code = code.replace(/([^=!<>])==([^=])/g, "$1 == $2");
+  code = code.replace(/([^=!<>])!=([^=])/g, "$1 != $2");
+
+  // Add space after commas
+  code = code.replace(/,([^\s])/g, ", $1");
+
+  // Add space after control keywords
+  code = code.replace(/\b(if|while|for|switch)\(/g, "$1 (");
+
+  codeInput.value = code;
+  updateDisplay();
+};
+
+newFileBtn.addEventListener("click", newFile);
+uploadFileBtn.addEventListener("click", uploadFile);
+fileInput.addEventListener("change", loadFile);
+saveFileBtn.addEventListener("click", saveFile);
+formatCodeBtn.addEventListener("click", formatCode);
+
+// Initialize
+updateDisplay();
+codeInput.focus();
