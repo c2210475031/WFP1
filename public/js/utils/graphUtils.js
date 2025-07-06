@@ -105,15 +105,13 @@ export const handleClickNodeExpand = (d) => {
   const nodeID = d.data.id;
   const selectedNode = d3.select(`#${nodeID}`);
 
-  const isExpanded = Boolean(selectedNode.attr("data-expanded"));
+  const isExpanded = selectedNode.attr("data-expanded") === "true";
   console.log({ isExpanded });
   if (isExpanded) {
     // Collapse
     hideCodeBlock(selectedNode);
-    console.log("collapse block");
   } else {
     // Expand
-    console.log("expand block");
     showCodeBlock(selectedNode);
   }
 };
@@ -148,7 +146,6 @@ const showCodeBlock = (selectedNode) => {
 export const hideCodeBlock = (selectedNode) => {
   const nodeDiv = selectedNode.select(".node-shape");
   const codeHolder = nodeDiv.select("pre");
-  codeHolder.remove("pre");
 
   selectedNode
     .attr("data-expanded", false)
@@ -158,12 +155,14 @@ export const hideCodeBlock = (selectedNode) => {
     .attr("height", 40)
     .attr("x", -50)
     .attr("y", 0);
+
+  codeHolder.remove("pre");
 };
 
 export const hideAllCodeBlocks = () => {
   const allNodes = d3.selectAll(".node");
   console.log(allNodes);
-  allNodes.each((d) => {
+  allNodes.each(function (d) {
     hideCodeBlock(d3.select(this));
   });
 };
