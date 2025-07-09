@@ -1,3 +1,5 @@
+import { parseAndStoreData } from "./index.js";
+
 const codeInput = document.getElementById("codeInput");
 const codeDisplay = document.getElementById("codeDisplay");
 const lineNumbers = document.getElementById("lineNumbers");
@@ -75,7 +77,11 @@ codeInput.addEventListener("keydown", function (e) {
       this.value.substring(0, start) + "    " + this.value.substring(end);
     this.selectionStart = this.selectionEnd = start + 4;
     updateDisplay();
+  } else if (e.key === "s" && e.ctrlKey) {
+    e.preventDefault();
+    formatCode();
   }
+  console.log(e);
 });
 
 // File operations
@@ -126,9 +132,8 @@ const saveFile = () => {
 };
 
 // Basic C code formatting
-const formatCode = () => {
+const formatCode = async () => {
   let code = codeInput.value;
-
   // Remove extra whitespace
   code = code.replace(/\s+$/gm, "");
 
@@ -145,6 +150,7 @@ const formatCode = () => {
 
   codeInput.value = code;
   updateDisplay();
+  await parseAndStoreData(code);
 };
 
 newFileBtn.addEventListener("click", newFile);

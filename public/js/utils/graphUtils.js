@@ -106,7 +106,6 @@ export const handleClickNodeExpand = (d) => {
   const selectedNode = d3.select(`#${nodeID}`);
 
   const isExpanded = selectedNode.attr("data-expanded") === "true";
-  console.log({ isExpanded });
   if (isExpanded) {
     // Collapse
     hideCodeBlock(selectedNode);
@@ -128,31 +127,34 @@ const showCodeBlock = (selectedNode) => {
   const codeWidth = codeHolder.style("width");
   const codeHeight = codeHolder.style("height");
 
-  const divWidth = parseInt(codeWidth) + 20;
-  const divHeight = parseInt(codeHeight) + 50;
+  const tempWidth = parseInt(codeWidth) + 20;
+  const tempHeight = parseInt(codeHeight) + 50;
+  const newWidth = tempWidth > 100 ? tempWidth : 100;
+  const newHeight = tempHeight > 50 ? tempHeight : 50;
 
-  const divMovingWidth = divWidth / 2;
+  const divMovingWidth = newWidth / 2;
 
   selectedNode
     .transition()
     .duration(300)
     .attr("data-expanded", true)
-    .attr("width", divWidth)
-    .attr("height", divHeight)
+    .attr("width", newWidth)
+    .attr("height", newHeight)
     .attr("x", -divMovingWidth)
     .attr("y", 0);
+
+  bringNodeToFront(selectedNode);
 };
 
 export const hideCodeBlock = (selectedNode) => {
   const nodeDiv = selectedNode.select(".node-shape");
   const codeHolder = nodeDiv.select("pre");
-
   selectedNode
     .attr("data-expanded", false)
     .transition()
     .duration(300)
     .attr("width", 100)
-    .attr("height", 40)
+    .attr("height", 60)
     .attr("x", -50)
     .attr("y", 0);
 
@@ -160,9 +162,16 @@ export const hideCodeBlock = (selectedNode) => {
 };
 
 export const hideAllCodeBlocks = () => {
-  const allNodes = d3.selectAll(".node");
-  console.log(allNodes);
+  const allNodes = d3.selectAll('[data-expanded="true"]');
   allNodes.each(function (d) {
     hideCodeBlock(d3.select(this));
   });
+};
+
+const bringNodeToFront = (selectedNode) => {
+  const nodeWrapper = selectedNode.select(function () {
+    return this.parentNode;
+  });
+
+  nodeWrapper.raise();
 };

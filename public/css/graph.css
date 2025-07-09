@@ -38,16 +38,75 @@
   justify-content: center;
   flex-direction: column;
   font-size: 12px;
-  /* border: 1px solid red; */
-  background-color: #547792;
-  color: rgb(0, 0, 0);
+  background: rgba(0, 0, 0, 0.8);
+  font-weight: bold;
+  border-radius: 10px 0 10px 0;
+  color: rgb(167, 165, 165);
   padding: 4px;
   box-sizing: border-box;
   word-wrap: break-word;
   overflow-wrap: break-word;
+  border: 2px solid #00ffff;
+}
+
+.neon-link {
+  fill: none;
+  stroke: #00ffff;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 5px #00ffff) drop-shadow(0 0 10px #00ffff);
+  /* drop-shadow(0 0 20px #00ffff) drop-shadow(0 0 30px #00ffff); */
 }
 
 .node-shape h3 {
   text-align: center;
   text-transform: capitalize;
+  /* border: 1px solid red; */
+  padding-bottom: 5px;
 }
+
+.has-children {
+  filter: drop-shadow(0 0 5px #00ffffc5) drop-shadow(0 0 20px #00ffffc5)
+    drop-shadow(0 0 40px #00ffffc5);
+  animation: neon-flicker-node 2s infinite alternate;
+}
+
+.has-children .node-shape {
+  border: 2px solid #00ffff;
+  color: #00ffff;
+}
+
+.node-shape pre {
+  color: #fff;
+  padding: 10px;
+}
+
+@keyframes neon-flicker-node {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 5px #00ffffc5) drop-shadow(0 0 10px #00ffffc5)
+      drop-shadow(0 0 20px #00ffffc5);
+  }
+  50% {
+    filter: drop-shadow(0 0 2px #00ffffc5) drop-shadow(0 0 5px #00ffffc5)
+      drop-shadow(0 0 10px #00ffffc5);
+  }
+}
+
+/* @keyframes neon-flicker-link {
+            0%, 100% {
+                filter: drop-shadow(0 0 5px #00ffff) 
+                        drop-shadow(0 0 20px #00ffff) 
+                        drop-shadow(0 0 40px #00ffff) 
+                        drop-shadow(0 0 80px #00ffff);
+                stroke-width: 2;
+            }
+            50% {
+                filter: drop-shadow(0 0 2px #00ffff) 
+                        drop-shadow(0 0 10px #00ffff) 
+                        drop-shadow(0 0 20px #00ffff) 
+                        drop-shadow(0 0 40px #00ffff);
+                stroke-width: 1.5;
+            }
+        } */

@@ -1,4 +1,4 @@
-import { treeData, treeData2 } from "./utils/data.js";
+import { treeData, treeData2, treeData3 } from "./utils/data.js";
 import {
   createGrid,
   dx,
@@ -6,11 +6,17 @@ import {
   getGraphSize,
   handleClickNodeExpand,
   hideAllCodeBlocks,
-  hideCodeBlock,
   initializeZoomBehavior,
   margin,
 } from "./utils/graphUtils.js";
 const { width: contWidth, height: contHeight } = getContainerSize();
+const categorizedTypes = [
+  "preproc_include",
+  "preproc_def",
+  "struct_specifier",
+  "declaration",
+  "function_definition",
+];
 
 const createSVGForGraph = (treeData) => {
   const diagonal = d3
@@ -34,19 +40,10 @@ const createSVGForGraph = (treeData) => {
   const zoomContainer = svg.append("g").attr("class", "zoom-container");
 
   // Initialize grid
-  createGrid(zoomContainer);
+  //??? createGrid(zoomContainer);
 
   // Initialize zoom behavior
   initializeZoomBehavior(svg);
-
-  const gNode = zoomContainer
-    .append("g")
-    .attr("cursor", "pointer")
-    .attr("pointer-events", "all")
-    .attr(
-      "style",
-      "width: 100%; height: 100%; font: 10px sans-serif; user-select: none;"
-    );
 
   const gLink = zoomContainer
     .append("g")
@@ -55,10 +52,21 @@ const createSVGForGraph = (treeData) => {
     .attr("stroke-opacity", 0.4)
     .attr("stroke-width", 1.5);
 
+  const gNode = zoomContainer
+    .append("g")
+    .attr("cursor", "pointer")
+    .attr("id", "nodes-group")
+    .attr("pointer-events", "all")
+    .attr(
+      "style",
+      "width: 100%; height: 100%; font: 10px sans-serif; user-select: none;"
+    );
+
   const update = (event, source) => {
     const duration = event?.altKey ? 500 : 250; // hold the alt key to slow down the transition
     const nodes = root.descendants().reverse();
     const links = root.links();
+
     // Compute the new tree layout.
     treemap(root);
 
@@ -85,41 +93,29 @@ const createSVGForGraph = (treeData) => {
         -margin.top,
         contWidth,
         contHeight,
-      ])
-      .tween(
-        "resize",
-        window.ResizeObserver ? null : () => () => svg.dispatch("toggle")
-      );
+      ]);
 
     // Update the nodes…
     const node = gNode.selectAll("g").data(nodes, (d) => d.id);
-
     // Enter any new nodes at the parent's previous position.
     const nodeEnter = node
       .enter()
       .append("g")
       .attr("transform", (d) => `translate(${source.y0},${source.x0})`)
       .attr("fill-opacity", 0)
-      .attr("stroke-opacity", 0)
-      .attr("class", "node");
-    // .on("click", (d) => {
-    //   const event = d3.event;
-    //     d.children = d.children ? null : d._children;
-    //   update(event, d);
-    // });
+      .attr("stroke-opacity", 0);
+    // .attr("class", "node");
 
-    // nodeEnter
-    //   .append("rect")
-    //   .attr("class", "shape")
-    //   .attr("fill", (d) => (d._children ? "#555" : "#999"))
-    //   .attr("transform", (d) => `translate(-15,0)`);
+    nodeEnter.attr("class", (d) =>
+      d._children ? "node has-children" : "node"
+    );
 
     const foreignObject = nodeEnter
       .append("foreignObject")
       .attr("x", -50)
       .attr("y", 0)
       .attr("width", 100)
-      .attr("height", 40)
+      .attr("height", 60)
       .attr("id", (d) => d.data.id)
       .on("click", (d) => {
         const event = d3.event;
@@ -128,9 +124,7 @@ const createSVGForGraph = (treeData) => {
           handleClickNodeExpand(d);
         } else {
           d.children = d.children ? null : d._children;
-          const selectedNode = d3.select(`#${d.data.id}`);
           hideAllCodeBlocks();
-          // hideCodeBlock(selectedNode);
           update(event, d);
         }
       });
@@ -139,7 +133,7 @@ const createSVGForGraph = (treeData) => {
       .append("xhtml:div")
       .attr("class", "node-shape");
 
-    nodeDiv.append("h3").text((d) => d.data.type.replace("_", " "));
+    nodeDiv.append("h3").text((d) => d.data.type.replaceAll("_", " "));
 
     // Transition nodes to their new position.
     const nodeUpdate = node
@@ -165,6 +159,7 @@ const createSVGForGraph = (treeData) => {
     const linkEnter = link
       .enter()
       .append("path")
+      .attr("class", "neon-link ")
       .attr("d", (d) => {
         const o = { x: source.x0, y: source.y0 };
         return diagonal({ source: o, target: o });
@@ -202,7 +197,29 @@ const createSVGForGraph = (treeData) => {
   return svg.node();
 };
 
-const svgGraph = createSVGForGraph(treeData.rootNode);
+/* const svgGraph = createSVGForGraph(treeData.rootNode);
 const svgGraph2 = createSVGForGraph(treeData2.tree);
+const svgGraph3 = createSVGForGraph(treeData3.tree);
 
-document.querySelector(".svg-container").appendChild(svgGraph2);
+document.querySelector(".svg-container").appendChild(svgGraph3);
+ */
+
+const updateGraph = (parsedData) => {
+  const svgGraph = createSVGForGraph(parsedData.tree);
+
+  const svgContainer = document.querySelector(".svg-container");
+  if (svgContainer.children.length > 0) {
+    svgContainer.innerHTML = "";
+  }
+  svgContainer.appendChild(svgGraph);
+};
+
+document.addEventListener("parsedDataUpdated", (event) => {
+  const { data } = event.detail;
+
+  if (data) {
+    updateGraph(data);
+  } else {
+    clearGraph();
+  }
+});

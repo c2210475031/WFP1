@@ -1,172 +1,99 @@
-// const createSVGForGraph = (treeData) => {
-//   const diagonal = d3
-//     .linkVertical()
-//     .x((d) => d.x)
-//     .y((d) => d.y);
+import { parseSourceCode } from "./utils/httpUtils.js";
 
-//   const root = d3.hierarchy(treeData);
+let globalParsedData = null;
 
-//   const { width, height } = getGraphSize();
-//   const dy = (width - margin.right - margin.left) / (1 + root.height);
+// Function to parse code and store in global variable
+export const parseAndStoreData = async (sourceCode) => {
+  // Don't parse if code is empty
+  if (!sourceCode.trim()) {
+    globalParsedData = null;
+    parseStatus = {
+      isLoading: false,
+      hasError: false,
+      lastError: null,
+      lastUpdated: null,
+    };
+    notifyGraphUpdate();
+    return;
+  }
 
-//   const treemap = d3.tree().nodeSize([dy, dx]);
+  try {
+    // Call the parser API
+    const result = await parseSourceCode(sourceCode);
 
-//   const svg = d3
-//     .create("svg")
-//     .attr("width", contWidth)
-//     .attr("height", contHeight)
-//     .attr("viewBox", [-margin.left, -margin.top, width, dx])
-//     .attr(
-//       "style",
-//       "max-width: 100%; height: auto; font: 10px sans-serif; user-select: none; border: 2px solid red"
-//     );
+    if (result.success) {
+      // Store successful parse result
+      globalParsedData = result;
 
-//   const gNode = svg
-//     .append("g")
-//     .attr("cursor", "pointer")
-//     .attr("pointer-events", "all")
-//     .attr(
-//       "style",
-//       "max-width: 100%; height: auto; font: 10px sans-serif; user-select: none; border: 2px solid red"
-//     );
+      // Log for debugging
+      console.log("Parse successful:", {
+        nodeCount: result.metadata.nodeCount,
+        types: result.metadata.types,
+        filtered: result.filtered,
+      });
+    } else {
+      // Handle parse error
+      globalParsedData = null;
 
-//   const gLink = svg
-//     .append("g")
-//     .attr("fill", "none")
-//     .attr("stroke", "#555")
-//     .attr("stroke-opacity", 0.4)
-//     .attr("stroke-width", 1.5);
+      console.error("Parse failed:", result.error);
+    }
+  } catch (error) {
+    // Handle network or other errors
+    globalParsedData = null;
 
-//   const update = (event, source) => {
-//     const duration = event?.altKey ? 2500 : 250; // hold the alt key to slow down the transition
-//     const nodes = root.descendants().reverse();
-//     const links = root.links();
-//     // Compute the new tree layout.
-//     treemap(root);
+    console.error("Parse request failed:", error);
+  }
 
-//     let top = root;
-//     let bottom = root;
-//     let left = root;
-//     let right = root;
-//     root.eachBefore((node) => {
-//       if (node.y < top.y) top = node;
-//       if (node.y > bottom.y) bottom = node;
-//       if (node.x < left.x) left = node;
-//       if (node.x > right.x) right = node;
-//     });
+  // Notify graph file about the update
+  notifyGraphUpdate();
+};
 
-//     const height = bottom.y - top.y + margin.top + margin.bottom;
+// Function to notify graph file about data updates
+const notifyGraphUpdate = () => {
+  // Dispatch custom event that graph file can listen to
+  const event = new CustomEvent("parsedDataUpdated", {
+    detail: {
+      data: globalParsedData,
+    },
+  });
 
-//     const transition = svg
-//       .transition()
-//       .duration(duration)
-//       .attr("height", contHeight)
-//       .attr("viewBox", [
-//         left.x - (contWidth - (right.x - left.x)) / 2,
-//         -margin.top,
-//         contWidth,
-//         contHeight,
-//       ])
-//       .tween(
-//         "resize",
-//         window.ResizeObserver ? null : () => () => svg.dispatch("toggle")
-//       );
+  document.dispatchEvent(event);
 
-//     // Update the nodes…
-//     const node = gNode.selectAll("g").data(nodes, (d) => d.id);
+  // Alternative: Call a callback function if the graph file provides one
+  if (typeof window.onParsedDataUpdate === "function") {
+    window.onParsedDataUpdate(globalParsedData);
+  }
+};
 
-//     // Enter any new nodes at the parent's previous position.
-//     const nodeEnter = node
-//       .enter()
-//       .append("g")
-//       .attr("transform", (d) => `translate(${source.y0},${source.x0})`)
-//       .attr("fill-opacity", 0)
-//       .attr("stroke-opacity", 0)
-//       .attr("class", "node")
-//       .on("click", (d) => {
-//         d.children = d.children ? null : d._children;
-//         update(event, d);
-//         updateVisibleNodes(d);
-//       });
+// Utility function to get current parsed data (for use in other files)
+const getCurrentParsedData = () => {
+  return {
+    data: globalParsedData,
+    status: parseStatus,
+  };
+};
 
-//     nodeEnter
-//       .append("circle")
-//       .attr("r", 2.5)
-//       .attr("fill", (d) => (d._children ? "#555" : "#999"))
-//       .attr("stroke-width", 10);
+// Utility function to parse with custom filter types
+const parseWithFilter = async (filterTypes) => {
+  const code = codeInput.value;
+  if (!code.trim()) return;
 
-//     nodeEnter
-//       .append("text")
-//       .attr("dy", "0.31em")
-//       .attr("x", (d) => (d._children ? -6 : 6))
-//       .attr("text-anchor", (d) => (d._children ? "end" : "start"))
-//       .text((d) => d.data.name)
-//       .attr("stroke-linejoin", "round")
-//       .attr("stroke-width", 3)
-//       .attr("stroke", "white")
-//       .attr("paint-order", "stroke");
+  try {
+    const result = await parseSourceCodeWithFilter(code, filterTypes);
 
-//     // Transition nodes to their new position.
-//     const nodeUpdate = node
-//       .merge(nodeEnter)
-//       .transition(transition)
-//       .attr("transform", (d) => `translate(${d.x},${d.y})`)
-//       .attr("fill-opacity", 1)
-//       .attr("stroke-opacity", 1);
+    if (result.success) {
+      globalParsedData = result;
 
-//     // Transition exiting nodes to the parent's new position.
-//     const nodeExit = node
-//       .exit()
-//       .transition(transition)
-//       .remove()
-//       .attr("transform", (d) => `translate(${source.x},${source.y})`)
-//       .attr("fill-opacity", 0)
-//       .attr("stroke-opacity", 0);
+      notifyGraphUpdate();
+    }
+  } catch (error) {
+    globalParsedData = null;
+  }
+};
 
-//     // Update the links…
-//     const link = gLink.selectAll("path").data(links, (d) => d.target.id);
-
-//     // Enter any new links at the parent's previous position.
-//     const linkEnter = link
-//       .enter()
-//       .append("path")
-//       .attr("d", (d) => {
-//         const o = { x: source.x0, y: source.y0 };
-//         return diagonal({ source: o, target: o });
-//       });
-
-//     // Transition links to their new position.
-//     link.merge(linkEnter).transition(transition).attr("d", diagonal);
-
-//     // Transition exiting nodes to the parent's new position.
-//     link
-//       .exit()
-//       .transition(transition)
-//       .remove()
-//       .attr("d", (d) => {
-//         const o = { x: source.x, y: source.y };
-//         return diagonal({ source: o, target: o });
-//       });
-//     // Stash the old positions for transition.
-//     root.eachBefore((d) => {
-//       d.x0 = d.x;
-//       d.y0 = d.y;
-//     });
-//     return gNode.selectAll("g");
-//   };
-
-//   root.x0 = dy / 2;
-//   root.y0 = 0;
-//   root.descendants().forEach((d, i) => {
-//     d.id = i;
-//     d._children = d.children;
-//     if (d.depth && d.data.name.length !== 7) d.children = null;
-//   });
-//   const asd = update(null, root);
-//   console.log(asd);
-//   return svg.node();
-// };
-
-// const svgGraph = createSVGForGraph(data);
-
-// document.getElementById("graph").appendChild(svgGraph);
+// Export functions for use in other files
+if (typeof window !== "undefined") {
+  window.getCurrentParsedData = getCurrentParsedData;
+  window.parseWithFilter = parseWithFilter;
+  window.globalParsedData = globalParsedData;
+}
