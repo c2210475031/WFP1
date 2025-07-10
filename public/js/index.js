@@ -1,4 +1,9 @@
-import { parseSourceCode } from "./utils/httpUtils.js";
+import { populateNodeTypes } from "./codeEditor.js";
+import { updateGraph } from "./treeGraph.js";
+import {
+  parseSourceCode,
+  parseSourceCodeWithFilter,
+} from "./utils/httpUtils.js";
 
 let globalParsedData = null;
 
@@ -58,11 +63,6 @@ const notifyGraphUpdate = () => {
   });
 
   document.dispatchEvent(event);
-
-  // Alternative: Call a callback function if the graph file provides one
-  if (typeof window.onParsedDataUpdate === "function") {
-    window.onParsedDataUpdate(globalParsedData);
-  }
 };
 
 // Utility function to get current parsed data (for use in other files)
@@ -90,6 +90,27 @@ const parseWithFilter = async (filterTypes) => {
     globalParsedData = null;
   }
 };
+
+document.addEventListener("nodeTypesChanged", (event) => {
+  const { selectedTypes } = event.detail;
+  if (selectedTypes.length) {
+    console.log(selectedTypes);
+    parseWithFilter(selectedTypes);
+  }
+});
+
+document.addEventListener("parsedDataUpdated", (event) => {
+  const { data } = event.detail;
+
+  if (data) {
+    updateGraph(data);
+    const nodeTypes = data?.metadata?.types;
+    if (nodeTypes.join() !== window.nodeTypes?.join()) {
+      populateNodeTypes(nodeTypes);
+      window.nodeTypes = nodeTypes;
+    }
+  }
+});
 
 // Export functions for use in other files
 if (typeof window !== "undefined") {

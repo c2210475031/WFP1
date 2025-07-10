@@ -204,7 +204,7 @@ const svgGraph3 = createSVGForGraph(treeData3.tree);
 document.querySelector(".svg-container").appendChild(svgGraph3);
  */
 
-const updateGraph = (parsedData) => {
+export const updateGraph = (parsedData) => {
   const svgGraph = createSVGForGraph(parsedData.tree);
 
   const svgContainer = document.querySelector(".svg-container");
@@ -214,12 +214,10 @@ const updateGraph = (parsedData) => {
   svgContainer.appendChild(svgGraph);
 };
 
-document.addEventListener("parsedDataUpdated", (event) => {
-  const { data } = event.detail;
+// document.addEventListener("parsedDataUpdated", (event) => {
+//   const { data } = event.detail;
 
-  if (data) {
-    updateGraph(data);
-  } else {
-    clearGraph();
-  }
-});
+//   if (data) {
+//     updateGraph(data);
+//   }
+// });

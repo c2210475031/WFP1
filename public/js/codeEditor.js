@@ -12,6 +12,9 @@ const saveFileBtn = document.getElementById("saveFileBtn");
 const formatCodeBtn = document.getElementById("formatCodeBtn");
 // File Upload Input
 const fileInput = document.getElementById("fileInput");
+//Node Type Filter Dropdown
+const dropdownBtn = document.getElementById("dropdownBtn");
+const selectAllBtn = document.getElementById("selectAllBtn");
 
 let currentFileName = "untitled.c";
 
@@ -81,7 +84,6 @@ codeInput.addEventListener("keydown", function (e) {
     e.preventDefault();
     formatCode();
   }
-  console.log(e);
 });
 
 // File operations
@@ -153,11 +155,78 @@ const formatCode = async () => {
   await parseAndStoreData(code);
 };
 
+let selectedNodeTypes = [];
+let availableNodeTypes = [];
+
+const updateSelectedNodeTypes = () => {
+  const checkboxes = document.querySelectorAll(
+    '#nodeTypesDropdown input[type="checkbox"]:checked'
+  );
+  selectedNodeTypes = Array.from(checkboxes).map((cb) => cb.value);
+
+  // Trigger custom event for other parts of the application
+  const event = new CustomEvent("nodeTypesChanged", {
+    detail: {
+      selectedTypes: selectedNodeTypes,
+      availableTypes: availableNodeTypes,
+    },
+  });
+  document.dispatchEvent(event);
+};
+
+export const populateNodeTypes = (types) => {
+  let nodeTypes = [];
+  if (types) {
+    types.forEach((t) => nodeTypes.push({ label: t, checked: true }));
+  }
+
+  availableNodeTypes = nodeTypes;
+  const dropdownContent = document.getElementById("dropdownContent");
+
+  // Clear existing content
+  dropdownContent.innerHTML = "";
+
+  // Create dropdown items
+  nodeTypes.forEach((nodeType) => {
+    const label = document.createElement("label");
+    label.className = "dropdown-item";
+    label.innerHTML = `
+                    <input type="checkbox" value="${nodeType.label}" ${
+      nodeType.checked ? "checked" : ""
+    }> 
+                    ${nodeType.label}
+                `;
+
+    // Add event listener to the checkbox
+    const checkbox = label.querySelector('input[type="checkbox"]');
+    checkbox.addEventListener("change", updateSelectedNodeTypes);
+
+    dropdownContent.appendChild(label);
+  });
+};
+
+const toggleNodeTypesDropdown = () => {
+  const dropdown = document.getElementById("nodeTypesDropdown");
+  dropdown.classList.toggle("show");
+};
+
+const selectAllNodeTypes = () => {
+  const checkboxes = document.querySelectorAll(
+    '#nodeTypesDropdown input[type="checkbox"]'
+  );
+  checkboxes.forEach((cb) => (cb.checked = true));
+  updateSelectedNodeTypes();
+};
+
+// Editor Control Buttons
 newFileBtn.addEventListener("click", newFile);
 uploadFileBtn.addEventListener("click", uploadFile);
 fileInput.addEventListener("change", loadFile);
 saveFileBtn.addEventListener("click", saveFile);
 formatCodeBtn.addEventListener("click", formatCode);
+//Dropdown node type filter
+dropdownBtn.addEventListener("click", toggleNodeTypesDropdown);
+selectAllBtn.addEventListener("click", selectAllNodeTypes);
 
 // Initialize
 updateDisplay();

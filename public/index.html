@@ -24,6 +24,22 @@
             <button class="btn secondary" id="uploadFileBtn">Upload</button>
             <button class="btn secondary" id="saveFileBtn">Save</button>
             <button class="btn" id="formatCodeBtn">Format</button>
+            <div class="dropdown-container">
+              <button class="btn secondary" id="dropdownBtn">
+                Node Types ▼
+              </button>
+              <div class="dropdown" id="nodeTypesDropdown">
+                <div class="dropdown-header">Select Node Types:</div>
+                <div class="dropdown-content" id="dropdownContent">
+                  <!-- Node Types content will be inserted here -->
+                </div>
+                <div class="dropdown-footer">
+                  <button class="btn-small" id="selectAllBtn">
+                    Select All
+                  </button>
+                </div>
+              </div>
+            </div>
             <input
               type="file"
               class="file-input"
