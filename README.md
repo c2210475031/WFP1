@@ -9,11 +9,11 @@
 
 3. Open the folder with VS Code and run the following command in the included terminal. *
 
-`npm install tree-sitter`
+`npm install`
 
 Expected run on Windows:
 ```
-PS C:\Users\leoro\Documents\GitHub\WFP1a> npm install tree-sitter
+PS C:\Users\leoro\Documents\GitHub\WFP1a> npm install
 
 added 71 packages, and audited 72 packages in 2s
 
